@@ -25,10 +25,10 @@ df['Posição'].replace('  0  ', ' ', regex=True, inplace=True)
 print(df)
 
 #exportando dataframe em excel
-#df.to_excel('ex.xlsx', sheet_name='Teste', na_rep='#n/a', header=True, index=True)
+df.to_excel('ex.xlsx', sheet_name='Teste', na_rep='#n/a', header=True, index=True)
 
 #exportando dataframe em json
-#df.to_json('ex.json')
+df.to_json('ex.json')
 
 #exportando dataframe em excel
-#df.to_csv('ex.csv', encoding='ISO-8859-1')
+df.to_csv('ex.csv', encoding='ISO-8859-1')
