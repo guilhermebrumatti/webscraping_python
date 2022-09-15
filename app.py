@@ -1,10 +1,11 @@
 from array import array
 from encodings.utf_8 import decode
+from multiprocessing.sharedctypes import Value
 from venv import create
 from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 import requests
-import sqlite3
+from sqlalchemy import create_engine
 
 header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"}
 url = "https://www.cbf.com.br/futebol-brasileiro/competicoes/campeonato-brasileiro-serie-a"
@@ -25,7 +26,7 @@ df.drop("%", axis = 1, inplace=True)
 
 #dividindo a coluna posição em 3: Ranking, variação de posição e nome do time
 posi = df["Posição"].str.split("  ", n = 3, expand=True)
-df.insert(column='Ranking', value=posi[0], loc=0)
+df.insert(column='Ranking', value=posi[0].str.extract('([1-91020]{1,2})\s*'), loc=0)
 df.insert(column='Variação de Posição', value=posi[1], loc=1)
 df.insert(column='Time', value=posi[2], loc=2)
 #deletando a coluna Posição, original
@@ -50,8 +51,6 @@ del df["Recentes"]
 # https://pandas.pydata.org/docs/reference/api/pandas.get_dummies.html
 df = pd.get_dummies(df, columns=["Antepenúltimo", "Penúltimo", "Último"])
 
-#print(df)
-
 #exportando dataframe em excel
 #df.to_excel("Brasileirao_serie_a.xlsx", sheet_name="classificação", na_rep="#n/a", header=True, index=True)
 
@@ -61,13 +60,8 @@ df = pd.get_dummies(df, columns=["Antepenúltimo", "Penúltimo", "Último"])
 #exportando dataframe em excel
 #df.to_csv("Brasileirao_serie_a.csv", encoding="ISO-8859-1")
 
-conn = sqlite3.connect('classificacao.db')
-create_sql = "CREATE TABLE IF NOT EXISTS classificacao_tb (ranking TEXT, time TEXT, uf TEXT, variacao INTEGER, pts INTEGER, j INTEGER, v INTEGER, e INTEGER, d INTEGER, gp INTEGER, gc INTEGER, sg INTEGER, ca INTEGER, cv INTEGER, antepenultimo_d INTEGER, antepenultimo_e INTEGER, antepenultimo_v INTEGER, penultimo_d INTEGER, penultimo_e INTEGER, penultimo_v INTEGER, ultimo_d INTEGER, ultimo_e INTEGER, ultimo_v INTEGER)"
-cursor = conn.cursor()
-cursor.execute(create_sql)
-
-for row in df.itertuples():
-    insert_sql = f"INSERT INTO classificacao_tb (ranking, time, uf, variacao, pts, j, v, e, d, gp, gc, sg, ca, cv, antepenultimo_d, antepenultimo_e, antepenultimo_v, penultimo_d, penultimo_e, penultimo_v, ultimo_d, ultimo_e, ultimo_v) VALUES ({row[1]}, {row[2]}, {row[3]}, {row[4]}, {row[5]}, {row[6]}, {row[7]}, {row[8]}, {row[9]}, {row[10]}, {row[11]}, {row[12]}, {row[13]}, {row[14]}, {row[15]}, {row[16]}, {row[17]}, {row[18]}, {row[19]}, {row[20]}, {row[21]}, {row[22]}, {row[23]})"
-    cursor.execute(insert_sql)
-
-conn.commit()
+#criando banco de dados, tabela, adicionando os dados do Dataframe na tabela
+engine = create_engine('sqlite://', echo=False)
+df.to_sql('tabela_classificacao', con=engine, if_exists='replace')
+result = engine.execute('SELECT * FROM tabela_classificacao where "Time" = "Flamengo"').fetchall()
+print(result)
